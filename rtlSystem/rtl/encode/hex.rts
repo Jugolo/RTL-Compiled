@@ -1,0 +1,46 @@
+if(typeof hashmap != "function")
+  include "rtl.hashmap";
+
+function isHexDigit(c){
+  c = ord(c);
+  return c >= 48 && c <= 57 || c >= 65 && c <= 70;
+}
+
+global hextabledigit = hashmap();
+hashmap_put(hextabledigit, 48, 0);
+hashmap_put(hextabledigit, 49, 1);
+hashmap_put(hextabledigit, 50, 2);
+hashmap_put(hextabledigit, 51, 3);
+hashmap_put(hextabledigit, 52, 4);
+hashmap_put(hextabledigit, 53, 5);
+hashmap_put(hextabledigit, 54, 6);
+hashmap_put(hextabledigit, 55, 7);
+hashmap_put(hextabledigit, 56, 8);
+hashmap_put(hextabledigit, 57, 9);
+hashmap_put(hextabledigit, 65, 10);
+hashmap_put(hextabledigit, 66, 11);
+hashmap_put(hextabledigit, 67, 12);
+hashmap_put(hextabledigit, 68, 13);
+hashmap_put(hextabledigit, 69, 14);
+hashmap_put(hextabledigit, 70, 15);
+
+
+function hex2int(str){
+  opcode = strlen(str)-1;
+  result = 0;
+  for(i=0;i<strlen(str);i++){
+    result = result + (hashmap_get(hextabledigit, ord(strchar(str, i))) * (16 ^ (opcode - i)));
+  }
+  return result;
+}
+
+function int2hex(num){
+  result = "";
+  while(num > 0){
+     c = num / 16;
+     remainder = num - c * 16;
+     num = c;
+     result = chr(hashmap_keyFromValue(hextabledigit, remainder))+result;
+  }
+  return result;
+}

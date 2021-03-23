@@ -1,0 +1,66 @@
+struct HASHMAP{
+  size,
+  array
+}
+
+struct HASHMAP_ITEM{
+  key,
+  value
+}
+
+function hashmap(){
+  buffer = struct HASHMAP;
+  buffer.size = 0;
+  buffer.array = [];
+  return buffer;
+}
+
+function hashmap_put(hm, name, value){
+  //first get all element to be sure we dont have it in the system...
+  for(i=0;i<hm.size;i++){
+    if(hm.array[i].key == name){
+      hm.array[i].value = value;
+      return;
+    }
+  }
+
+  //no name was found. let put a new item in it.
+  item = struct HASHMAP_ITEM;
+  item.key = name;
+  item.value = value;
+  hm.array[] = item;
+  hm.size++;
+}
+
+function hashmap_get(hm, name){
+  for(i=0;i<hm.size;i++){
+    if(hm.array[i].key == name){
+      return hm.array[i].value;
+    }
+  }
+
+  return null;
+}
+
+function hashmap_keyFromValue(hm, value){
+  for(i=0;i<hm.size;i++){
+    if(hm.array[i].value == value){
+      return hm.array[i].key;
+    }
+  }
+  return null;
+}
+
+function hashmap_for(hm, func){
+  for(i=0;i<hm.size;i++){
+    func(hm.array[i].key, hm.array[i].value);
+  }
+}
+
+function hashmap_hasKey(hm, name){
+  for(i=0;i<hm.size;i++){
+    if(hm.array[i].key == name)
+      return true;
+  }
+  return false;
+}

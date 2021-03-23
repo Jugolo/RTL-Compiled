@@ -1,0 +1,166 @@
+if(typeof hashmap != "function")
+  include "rtl.hashmap";
+if(typeof count != "function")
+  include "rtl.array";
+if(typeof toInt != "function")
+  include "rtl.typeconveter";
+
+function json_decode(r){
+  global l = strlen(r);
+  if(l == 0)
+    return null;
+
+  global i = 0;
+  global r;
+  function isNumber(n){
+    n = ord(n);
+    return n >= 48 && n <= 57;
+  }
+
+  function eatSpace(){
+     current = strchar(r, i);
+     while(current == " " || current == "\n" || current == "\r" || current == "\t"){
+       i++;
+       current = strchar(r, i);
+     }
+  }
+
+  function getObjElement(h){
+    eatSpace();
+    if(strchar(r, i) == '"'){
+      keyname = "";
+      for(i++;true;i++){
+        current = strchar(r,i);
+        if(current == '"'){
+          break;
+        }
+        keyname = keyname+current;
+      }
+      i++;
+      eatSpace();
+      if(strchar(r, i) != ':')
+        return null;
+
+      i++;
+      eatSpace();
+      item = getElement();
+      eatSpace();
+      hashmap_put(h, keyname, item);
+    }
+  }
+
+  function getArrayElement(array){
+    eatSpace();
+    array[] = getElement();
+    eatSpace();
+  }
+  
+  function getElement(){
+    current = strchar(r, i);
+    i++;
+    if(current == "{"){
+      eatSpace();
+      obj = hashmap();
+      if(strchar(r, i) != "}"){
+        getObjElement(obj);
+        current = strchar(r, i);
+        while(current == ","){
+           i++;
+           getObjElement(obj);
+           current = strchar(r, i);
+        }
+        if(strchar(r, i) != "}"){
+          return null;
+        }
+        i++;
+      }
+      return obj;
+    }
+
+    if(current == "["){
+      eatSpace();
+      array = [];
+      if(strchar(r, i) != "]"){
+        getArrayElement(array);
+        while(strchar(r, i) == ","){
+          i++;
+          getArrayElement(array);
+        }
+      } 
+
+      if(strchar(r, i) != "]"){
+        return null;
+      }
+      i++;
+      return array;
+    }
+
+    if(current == '"'){
+      str = "";
+      for(;true;i++){
+        current = strchar(r, i);
+        if(current == '"'){
+          i++;
+          return str;
+        }
+        str = str+current;
+      }
+    }
+
+    if(current == '-' || isNumber(current)){
+      if(current == '-')
+        number = "-";
+      else
+        number = current;
+
+      for(;isNumber(strchar(r, i));i++){
+        number = number+strchar(r,i);
+      }
+      i--;
+      return toInt(number);
+    }
+
+    return null;
+  }
+  return getElement();
+}
+
+function json_encode(data){
+  function join(array, clue){
+    length = count(array);
+    if(length == 0)
+      return "";
+    r = array[0];
+    for(i=1;i<length;i++)
+      r = r+clue+array[i];
+    return r;
+  }
+  if(typeof data == "array"){
+    r = [];
+    for(i=0;i<count(data);i++){
+      r[] = json_encode(data[i]);
+    }
+    return "["+join(r, ",")+"]";
+  }
+
+  if(typeof data == "structValue"){
+    if(data._struct.name == "HASHMAP"){
+      global r = [];
+      function js(key, value){
+         r[] = '"'+key+"\" : "+json_encode(value);
+      }
+      hashmap_for(data, js);
+      return "{"+join(r, ",")+"}";
+    }
+    return null;
+  }
+
+  if(typeof data == "string"){
+    return '"'+data+'"';
+  }
+
+
+  if(typeof data == "number")
+    return data+"";
+  return null;
+}

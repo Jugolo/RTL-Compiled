@@ -1,0 +1,266 @@
+if(typeof thread != "function")
+  include "rtl.system.thread";
+if(typeof tcpserver_open != "function")
+  include "rtl.io.tcp.server";
+if(typeof tcp_readln != "function")
+  include "rtl.io.tcp.client";
+if(typeof hashmap != "function")
+  include "rtl.hashmap";
+if(typeof str_split != "function")
+  include "rtl.string";
+if(typeof count != "function")
+  include "rtl.array";
+if(typeof file != "function")
+  include "rtl.io.file";
+if(typeof urldecode != "function")
+  include "rtl.io.web.url";
+if(typeof toInt != "function")
+  include "rtl.typeconveter";
+
+struct WEBSERVER{
+  connection,
+  isRunning,
+  on404
+}
+
+struct WEBSERVER_REQUEST{
+  type,
+  header,
+  connection,
+  hasSentHeader,
+  returnHeader,
+  webserver,
+  post
+}
+
+function webserver_open(port){
+  data = struct WEBSERVER;
+  data.isRunning = false;
+  data.connection = tcpserver_open(port);
+  return data;
+}
+
+function webserver_parseQuery(query){
+  buffer = hashmap();
+  buf = str_split(query, "&");
+  for(i=0;i<count(buf);i++){
+    p = str_split(buf[i], "=");
+    if(count(p) == 2)
+      hashmap_put(buffer, urldecode(p[0]), urldecode(p[1]));
+  }
+  return buffer;
+}
+
+function webserver_parsePath(path, hm){
+  pos = strpos(path, "?");
+  if(pos == -1){
+    hashmap_put(hm, "path", path);
+    hashmap_put(hm, "query", hashmap());
+    return;
+  }
+  hashmap_put(hm, "path", substr(path, 0, pos));
+  querystr = substr(path, pos+1, 0);
+  if(querystr != "")
+    hashmap_put(hm, "query", webserver_parseQuery(substr(path, pos+1, 0)));
+  else
+    hashmap_put(hm, "query", hashmap());
+}
+
+function webserver_on404(webserver, on404){
+  if(typeof on404 == "function"){
+    webserver.on404 = on404;
+  }
+}
+
+function webserver_onConnect(webserver, func){
+  global webserver;
+  global func;
+  function webserver_handler(){
+    while(webserver.isRunning){
+      client = tcpserver_accept(webserver.connection);
+      line = tcp_readln(client);
+      data = str_split(line, " ");
+      if(count(data) != 3)
+        continue;
+      wr = struct WEBSERVER_REQUEST;
+      wr.webserver = webserver;
+      wr.connection = client;
+      wr.hasSentHeader = false;
+      wr.returnHeader = hashmap();
+      hashmap_put(wr.returnHeader, "Connection", "close");
+      hashmap_put(wr.returnHeader, "Content-Type", "text/plain");
+      wr.type = hashmap();
+      hashmap_put(wr.type, "type", data[0]);
+      webserver_parsePath(data[1], wr.type);
+      hashmap_put(wr.type, "version", data[2]);
+      wr.header = hashmap();
+      while((line = tcp_readln(client)) != ""){
+        pos = strpos(line, ": ");
+        hashmap_put(wr.header, substr(line, 0, pos), substr(line, pos+2, 0));
+      }
+      wr.post = hashmap();
+      if(hashmap_hasKey(wr.header, "Content-Type")){
+        ct = hashmap_get(wr.header, "Content-Type");
+        if(ct == "application/x-www-form-urlencoded"){
+           if(hashmap_hasKey(wr.header, "Content-Length")){
+             str = tcp_readLength(client, toInt(hashmap_get(wr.header, "Content-Length")));
+           }else{
+             str = "";
+             while((line = tcp_readln(client)) != null)
+               str = str+line;
+           }
+
+           base = str_split(str, "&");
+           for(i=0;i<count(base);i++){
+             part = str_split(base[i], "=");
+             hashmap_put(wr.post, urldecode(part[0]), count(part) == 1 ? null : urldecode(part[1]));
+           }
+        }
+      }
+      func(wr);
+    }
+  }
+  webserver.isRunning = true;
+  thread(webserver_handler);
+}
+
+function webserver_setHeader(request, key, value){
+  hashmap_put(request.returnHeader, key, value);
+}
+
+function webserver_getContentType(f, default){
+  name = file_path(f);
+  pos = strlpos(name, ".");
+  if(pos == -1)
+    return default;
+  name = substr(name, pos+1, 0);
+  c = hashmap();
+  hashmap_put(c, "html",  "text/html");
+  hashmap_put(c, "css",   "text/css");
+  hashmap_put(c, "js",    "text/javascript");
+  hashmap_put(c, "apng",  "image/apng");
+  hashmap_put(c, "avif",  "image/avif");
+  hashmap_put(c, "gif",   "image/gif");
+  hashmap_put(c, "jpg",   "image/jpeg");
+  hashmap_put(c, "jpeg",  "image/jpeg");
+  hashmap_put(c, "jfif",  "image/jpeg");
+  hashmap_put(c, "pjpeg", "image/jpeg");
+  hashmap_put(c, "pjp",   "image/jpeg");
+  hashmap_put(c, "png",   "image/png");
+  hashmap_put(c, "svg",   "image/svg+xml");
+  hashmap_put(c, "web",   "image/webp");
+
+  if(hashmap_hasKey(c, name))
+    return hashmap_get(c, name);
+  return default;
+}
+
+function webserver_sendHeader(request, type, str){
+  if(request.hasSentHeader){
+    return;
+  }
+
+  request.hasSentHeader = true;
+  tcp_writeln(request.connection, hashmap_get(request.type, "version")+" "+type+" "+str);
+  global request;
+  function headerfunc(name, value){
+    tcp_writeln(request.connection, name+": "+value);
+  }
+  hashmap_for(request.returnHeader, headerfunc);
+  tcp_writeln(request.connection, "");
+  tcp_flush(request.connection);
+}
+
+function webserver_startChunk(request, type, str){
+  webserver_setHeader(request, "Transfer-Encoding", "chunked");
+  webserver_sendHeader(request, type, str);
+}
+
+function webserver_sendString(request, str){
+  if(!hashmap_hasKey(request.returnHeader, "Transfer-Encoding") || hashmap_get(request.returnHeader, "Transfer-Encoding") != "chunked"){
+    return "";
+  }
+  tcp_writeln(request.connection, int2hex(strlen(str)));
+  tcp_writeln(request.connection, str);
+  tcp_flush(request.connection);
+}
+
+function webserver_close(request){
+  if(hashmap_hasKey(request.returnHeader, "Transfer-Encoding") && hashmap_get(request.returnHeader, "Transfer-Encoding") == "chunked"){
+    tcp_writeln(request.connection, "0");
+    tcp_writeln(request.connection, "");
+    tcp_flush(request.connection);
+  }
+  tcp_close(request.connection);
+}
+
+function webserver_sendBody(request, body){
+  tcp_write(request.connection, body);
+  tcp_close(request.connection);
+}
+
+function webserver_path(request){
+  return hashmap_get(request.type, "path");
+}
+
+function webserver_ip(request){
+  return tcp_ip(request.connection);
+}
+
+function webserver_404(request){
+  if(typeof request.webserver.on404 == "function" && !request.webserver.on404(request))
+    return;
+  webserver_sendHeader(request, "404", "not found");
+  webserver_sendBody(request, "Sorry the requested page could not be found...");
+}
+
+function webserver_sendFile(request, f){
+  if(f == null){
+    webserver_404(request);
+    return;
+  }
+
+  function webserver_getFileContent(request, f, ct){
+    if(strpos(ct, "image/") == 0){
+       webserver_setHeader(request, "Accept-Ranges", "bytes");
+       return file_readBytes(f, 0, file_size(f));
+    }
+    return file_readLength(f, 0, file_size(f));
+  }
+
+  //okay let make some importen header...
+  contenttype = webserver_getContentType(f, "text/plain");
+  webserver_setHeader(request, "Content-Length", file_size(f));
+  webserver_setHeader(request, "Content-Type", contenttype);
+  context = webserver_getFileContent(request, f, contenttype);
+  webserver_sendHeader(request, "200", "ok");
+  if(typeof context == "string")
+    tcp_write(request.connection, context);
+  else
+    tcp_writeBytes(request.connection, context);
+  tcp_flush(request.connection);
+}
+
+function webserver_hasQuery(request, key){
+  return hashmap_hasKey(hashmap_get(request.type, "query"), key);
+}
+
+function webserver_getQuery(request, key){
+  return hashmap_get(hashmap_get(request.type, "query"), key);
+}
+
+function webserver_hasRequestHeader(request, key){
+  return hashmap_hasKey(request.header, key);
+}
+
+function webserver_getRequestHeader(request, key){
+  return hashmap_get(request.header, key);
+}
+
+function webserver_hasPost(request, key){
+  return hashmap_hasKey(request.post, key);
+}
+
+function webserver_getPost(request, key){
+  return hashmap_get(request.post, key);
+}

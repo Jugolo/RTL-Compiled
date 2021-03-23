@@ -1,0 +1,23 @@
+if(typeof strchar != "function")
+  include "rts.string";
+
+function encodeHTML(str){
+  length = strlen(str);
+  r = "";
+  for(i=0;i<length;i++){
+    c = strchar(str, i);
+    if(c == ' ' || c == '\n' || c == '\r' || c == '\t'){
+      r = r+c;
+      continue;
+    }
+
+    n = ord(c);
+    if(n >= 48 && n <= 57 || n >= 65 && n <= 90 || n >= 97 && n <= 122){
+      r = r+c;
+    }else{
+      r = r+"&#"+n;
+    }
+  }
+
+  return r;
+}

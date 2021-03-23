@@ -1,0 +1,28 @@
+if(typeof isHexDigit != "function")
+  include "rtl.encode.hex";
+
+function urldecode(str){
+  r = "";
+  len = strlen(str);
+  for(k=0;k<len;k++){
+    c = strchar(str, k);
+    if(c != "%"){
+      s = c;
+    }else{
+      start = k;
+      if(k+2 >= len)
+        return "";
+      c1 = strchar(str, k+1);
+      c2 = strchar(str, k+2);
+      if(!isHexDigit(c1) || !isHexDigit(c2))
+        return "";
+      k = k+2;
+      int = hex2int(c1+c2);
+      if(int > 0){
+        s = chr(int);
+      }
+    }
+    r = r+s;
+  }
+  return r;
+}

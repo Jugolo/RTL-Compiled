@@ -1,0 +1,9 @@
+include "rtl.string";
+include "rtl.io.file";
+
+println "Install rts on "+os()+" machine";
+
+if(strpos(os(), "linux") != -1){
+  include "os/linux.rts";
+  putDesktopFile();
+}

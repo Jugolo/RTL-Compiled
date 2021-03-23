@@ -1,0 +1,12 @@
+function putDesktopFile(){
+  desktop = file("/usr/share/applications/RTL.desktop", "rw");
+  file_writeln(desktop, "[Desktop Entry]");
+  file_writeln(desktop, "Name=RTL");
+  file_writeln(desktop, "Comment=A script language to be used as standart program language");
+  file_writeln(desktop, "Exec=lxterminal sudo java -jar "+mainPath()+"/RTL.jar %U");
+  file_writeln(desktop, "Type=Application");
+  file_writeln(desktop, "Encoding=UTF-8");
+  file_writeln(desktop, "Terminal=true");
+  file_writeln(desktop, "Categories=None");
+  file_writeln(desktop, "NoDisplay=false");
+}

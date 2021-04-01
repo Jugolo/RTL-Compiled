@@ -1,12 +1,21 @@
+function makeLinuxBash(){
+  bash = file("/bin/rtl", "rw");
+  file_write(bash, "#!/bin/bash\n");
+  file_write(bash, "java -jar "+mainPath()+"/RTL.jar $1\n");
+  file_setExecutable(bash);
+}
+
 function putDesktopFile(){
   desktop = file("/usr/share/applications/RTL.desktop", "rw");
   file_writeln(desktop, "[Desktop Entry]");
   file_writeln(desktop, "Name=RTL");
   file_writeln(desktop, "Comment=A script language to be used as standart program language");
-  file_writeln(desktop, "Exec=lxterminal sudo java -jar "+mainPath()+"/RTL.jar %U");
+  file_writeln(desktop, "Exec=rtl %U");
   file_writeln(desktop, "Type=Application");
   file_writeln(desktop, "Encoding=UTF-8");
   file_writeln(desktop, "Terminal=true");
   file_writeln(desktop, "Categories=None");
   file_writeln(desktop, "NoDisplay=false");
+  //setup the bash file
+  makeLinuxBash();
 }

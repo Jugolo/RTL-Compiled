@@ -1,5 +1,9 @@
 if(typeof isHexDigit != "function")
   include "rtl.encode.hex";
+if(typeof count != "function")
+  include "rtl.array";
+if(typeof strlen != "function")
+  include "rtl.string";
 
 function urldecode(str){
   r = "";
@@ -23,6 +27,23 @@ function urldecode(str){
       }
     }
     r = r+s;
+  }
+  return r;
+}
+
+function urlencode(str){
+  r = "";
+  sign = [" ", "\n", "\r", "\t", "!", "*", "'", "(", ")", ";", ":", "@", "&", "=", "+", "$", ",", "/", "?", "%", "#", "[", "]"];
+  function inarray(array, s){
+    for(i=0;i<count(array);i++)
+      if(array[i] == s)
+        return true;
+    return false;
+  }
+  len = strlen(str);
+  for(i=0;i<len;i++){
+    c = strchar(str, i);
+    r = r+(inarray(sign, c) ? "%"+int2hex(ord(c))+";" : c);
   }
   return r;
 }

@@ -1,0 +1,66 @@
+if(typeof current_time != "function")
+  include "rtl.time";
+if(typeof webserver_hasCookie != "function")
+  include "rtl.io.web.sever";
+if(typeof chr != "function")
+  include "rtl.string";
+if(typeof rand != "function")
+  include "rtl.math.rand";
+if(typeof dir != "function")
+  include "rtl.io.dir";
+if(typeof json_encode != "function")
+  include "rtl.encode.json";
+
+struct SESSION{
+  id,
+  item
+}
+
+function session_init(request){
+  if(typeof request != "structValue" || request._struct.name != "WEBSERVER_REQUEST"){
+    return null;
+  }
+
+  session = struct SESSION;
+
+  if(!webserver_hasCookie(request, "session")){
+    ns = "";
+    for(i=0;i<20;i++)
+      ns = ns+chr(rand(97, 122));
+    webserver_setCookie(request, "session", ns, current_time().now + 99999999999);
+    session.id = ns;
+    //let us make a textfile in the cookie folder...
+    d = dir("./sessions/");
+    if(!dir_exists(d))
+      dir_create(d);
+    session.item = hashmap();
+  }else{
+    session.id = webserver_getCookie(request, "session");
+    if(file_exists("./sessions/"+session.id+".session")){
+      f = file("./sessions/"+session.id+".session", "r");
+      session.item = json_decode(file_readLength(f, 0, file_size(f)));
+    }else{
+      session.item = hashmap();
+    }
+  }
+
+  return session;
+}
+
+function session_hasKey(session, name){
+  return hashmap_hasKey(session.item, name); 
+}
+
+function session_getKey(session, name){
+  return hashmap_get(session.item, name);
+}
+
+function session_set(session, name, value){
+  return hashmap_get(session.item, name, value);
+} 
+
+function session_flush(session){
+  //open the file
+  f = file("./sessions/"+session.id+".session", "rw");
+  file_write(f, json_encode(session.item));
+}

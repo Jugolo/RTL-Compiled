@@ -16,6 +16,8 @@ if(typeof urldecode != "function")
   include "rtl.io.web.url";
 if(typeof toInt != "function")
   include "rtl.typeconveter";
+if(typeof utcstring != "function")
+  include "rtl.time";
 
 struct WEBSERVER{
   connection,
@@ -30,7 +32,8 @@ struct WEBSERVER_REQUEST{
   hasSentHeader,
   returnHeader,
   webserver,
-  post
+  post,
+  cookie
 }
 
 function webserver_open(port){
@@ -75,10 +78,24 @@ function webserver_on404(webserver, on404){
 function webserver_onConnect(webserver, func){
   global webserver;
   global func;
+  function handleCookie(request){
+    request.cookie = hashmap();
+    if(hashmap_hasKey(request.header, "Cookie")){
+      parts = str_split(hashmap_get(request.header, "Cookie"), "; ");
+      for(i=0;i<count(parts);i++){
+        pos = strpos(parts[i], "=");
+        hashmap_put(request.cookie, substr(parts[i], 0, pos), urldecode(substr(parts[i], pos+1, 0)));
+      }
+    }
+  }
   function webserver_handler(){
     while(webserver.isRunning){
       client = tcpserver_accept(webserver.connection);
       line = tcp_readln(client);
+      if(line == null){
+        tcp_close(client);
+        continue;//it should never happens but hey now we are safe :)
+      }
       data = str_split(line, " ");
       if(count(data) != 3)
         continue;
@@ -96,8 +113,15 @@ function webserver_onConnect(webserver, func){
       wr.header = hashmap();
       while((line = tcp_readln(client)) != ""){
         pos = strpos(line, ": ");
+        if(pos == -1){
+          println line;
+          println "fuck";
+          tcp_close(client);
+          break;
+        }
         hashmap_put(wr.header, substr(line, 0, pos), substr(line, pos+2, 0));
       }
+      handleCookie(wr);
       wr.post = hashmap();
       if(hashmap_hasKey(wr.header, "Content-Type")){
         ct = hashmap_get(wr.header, "Content-Type");
@@ -263,4 +287,16 @@ function webserver_hasPost(request, key){
 
 function webserver_getPost(request, key){
   return hashmap_get(request.post, key);
+}
+
+function webserver_hasCookie(request, key){
+  return hashmap_hasKey(request.cookie, key);
+}
+
+function webserver_getCookie(request, key){
+  return hashmap_get(request.cookie, key);
+}
+
+function webserver_setCookie(request, key, value, exp){
+  webserver_setHeader(request, "Set-Cookie", key+"="+urlencode(value)+"; Expires="+utcstring(exp));
 }

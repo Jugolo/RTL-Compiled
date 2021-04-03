@@ -13,7 +13,7 @@ if(typeof count != "function")
 if(typeof file != "function")
   include "rtl.io.file";
 if(typeof urldecode != "function")
-  include "rtl.io.web.url";
+  include "rtl.encode.url";
 if(typeof toInt != "function")
   include "rtl.typeconveter";
 if(typeof utcstring != "function")
@@ -114,8 +114,6 @@ function webserver_onConnect(webserver, func){
       while((line = tcp_readln(client)) != ""){
         pos = strpos(line, ": ");
         if(pos == -1){
-          println line;
-          println "fuck";
           tcp_close(client);
           break;
         }

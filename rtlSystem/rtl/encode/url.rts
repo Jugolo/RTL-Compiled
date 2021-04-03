@@ -34,16 +34,10 @@ function urldecode(str){
 function urlencode(str){
   r = "";
   sign = [" ", "\n", "\r", "\t", "!", "*", "'", "(", ")", ";", ":", "@", "&", "=", "+", "$", ",", "/", "?", "%", "#", "[", "]"];
-  function inarray(array, s){
-    for(i=0;i<count(array);i++)
-      if(array[i] == s)
-        return true;
-    return false;
-  }
   len = strlen(str);
   for(i=0;i<len;i++){
     c = strchar(str, i);
-    r = r+(inarray(sign, c) ? "%"+int2hex(ord(c))+";" : c);
+    r = r+(in_array(sign, c) ? "%"+int2hex(ord(c))+";" : c);
   }
   return r;
 }

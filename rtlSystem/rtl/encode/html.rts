@@ -1,7 +1,7 @@
 if(typeof strchar != "function")
   include "rtl.string";
 
-function encodeHTML(str){
+function encodeHTML(string str){
   length = strlen(str);
   r = "";
   for(i=0;i<length;i++){

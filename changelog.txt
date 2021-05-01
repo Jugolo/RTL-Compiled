@@ -1,0 +1,28 @@
+V1.1
+[new]
+  block: It allow you to containe access to code in a block. It simple just put you code bewten {}.
+  const: Now you can mark a identify as const (It can not be changed or deleted)
+  arguments: You can now give typed arugment. (i, o) -> (number i, number o)
+  function: Now you can create function at expresion level
+  mysql: New packet 'rtl.db.mysql' is added and you can now connect to MySQL
+  error: New packet 'rtl.error' is addedd. In this you can use function 'error' there stop the program and show error message
+  sha1: New packet 'rtl.encode.hash.sha1' is addedd and you can now hash string to sha1
+  Bitwise Bit shift: Now support <<, >> and >>> 
+  Bitwise OR: Now support |
+  Bitwise AND: Now support &
+  Bitwise NOT: Now support ~
+  Assign: Now support +=, -= and |=
+  Tab: Before if there was a tab outsite the string it will result in a error. Tab is now allowed
+  pow: Before pow operation was done bye '1 ^ 2' But ^ is a bitwise operator. So now it is function in rtl.math.function
+  println, print: Now support multiply item to print. When use , in println it will print all in same line and put a new line in the end
+  comma: Now the number allow comma like 12.12
+  numberInt: Force a number to be int.
+  numberDouble: Force a number to be double.
+  test: if you put --test before your file path the program will enter a test mode where all plugins there are loaded can test there function. 
+  RTL: add 'test' to tell if the program is in test mode.
+  asset: Asset is a test function to test if a given conditon is true. if not it takes the second arguments and throw a error
+  strtolower: Append the function strtolower there convert lower case to upper case
+  strtoupper: Append the function strtoupper there convert upper case to lower case 
+[bugfix]
+  Array: When try to change a value in array it will add it in the end of the stack. Now it just change the vlaue.
+  Array: When inilize array it not get the value from a reference but save the reference

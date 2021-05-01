@@ -1,7 +1,7 @@
 function makeLinuxBash(){
   bash = file("/bin/rtl", "rw");
   file_write(bash, "#!/bin/bash\n");
-  file_write(bash, "java -jar "+mainPath()+"/RTL.jar $1\n");
+  file_write(bash, "java -jar "+mainPath()+"/RTL.jar $@\n");
   file_setExecutable(bash);
 }
 

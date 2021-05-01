@@ -36,14 +36,14 @@ struct WEBSERVER_REQUEST{
   cookie
 }
 
-function webserver_open(port){
+function webserver_open(number port){
   data = struct WEBSERVER;
   data.isRunning = false;
   data.connection = tcpserver_open(port);
   return data;
 }
 
-function webserver_parseQuery(query){
+function webserver_parseQuery(string query){
   buffer = hashmap();
   buf = str_split(query, "&");
   for(i=0;i<count(buf);i++){
@@ -54,7 +54,7 @@ function webserver_parseQuery(query){
   return buffer;
 }
 
-function webserver_parsePath(path, hm){
+function webserver_parsePath(string path, HASHMAP hm){
   pos = strpos(path, "?");
   if(pos == -1){
     hashmap_put(hm, "path", path);
@@ -69,16 +69,15 @@ function webserver_parsePath(path, hm){
     hashmap_put(hm, "query", hashmap());
 }
 
-function webserver_on404(webserver, on404){
+function webserver_on404(WEBSERVER_REQUEST webserver, function on404){
   if(typeof on404 == "function"){
     webserver.on404 = on404;
   }
 }
 
-function webserver_onConnect(webserver, func){
-  global webserver;
-  global func;
-  function handleCookie(request){
+//Change in version 1.1 add block
+global const webserver_onConnect = {
+  function handleCookie(WEBSERVER_REQUEST request){
     request.cookie = hashmap();
     if(hashmap_hasKey(request.header, "Cookie")){
       parts = str_split(hashmap_get(request.header, "Cookie"), "; ");
@@ -88,7 +87,8 @@ function webserver_onConnect(webserver, func){
       }
     }
   }
-  function webserver_handler(){
+
+  function handler(WEBSERVER webserver, function func){
     while(webserver.isRunning){
       client = tcpserver_accept(webserver.connection);
       line = tcp_readln(client);
@@ -142,42 +142,51 @@ function webserver_onConnect(webserver, func){
       func(wr);
     }
   }
-  webserver.isRunning = true;
-  thread(webserver_handler);
-}
 
-function webserver_setHeader(request, key, value){
+  return function(WEBSERVER webserver, function func){
+    global webserver;
+    global func;
+    webserver.isRunning = true;
+    thread(function(){
+      handler(webserver, func);
+    });
+  };
+};
+
+function webserver_setHeader(WEBSERVER_REQUEST request, string key, string value){
   hashmap_put(request.returnHeader, key, value);
 }
 
-function webserver_getContentType(f, default){
-  name = file_path(f);
-  pos = strlpos(name, ".");
-  if(pos == -1)
-    return default;
-  name = substr(name, pos+1, 0);
-  c = hashmap();
-  hashmap_put(c, "html",  "text/html");
-  hashmap_put(c, "css",   "text/css");
-  hashmap_put(c, "js",    "text/javascript");
-  hashmap_put(c, "apng",  "image/apng");
-  hashmap_put(c, "avif",  "image/avif");
-  hashmap_put(c, "gif",   "image/gif");
-  hashmap_put(c, "jpg",   "image/jpeg");
-  hashmap_put(c, "jpeg",  "image/jpeg");
-  hashmap_put(c, "jfif",  "image/jpeg");
-  hashmap_put(c, "pjpeg", "image/jpeg");
-  hashmap_put(c, "pjp",   "image/jpeg");
-  hashmap_put(c, "png",   "image/png");
-  hashmap_put(c, "svg",   "image/svg+xml");
-  hashmap_put(c, "web",   "image/webp");
+global const webserver_getContentType = {
+   const global c = hashmap();
+   hashmap_put(c, "html",  "text/html");
+   hashmap_put(c, "css",   "text/css");
+   hashmap_put(c, "js",    "text/javascript");
+   hashmap_put(c, "apng",  "image/apng");
+   hashmap_put(c, "avif",  "image/avif");
+   hashmap_put(c, "gif",   "image/gif");
+   hashmap_put(c, "jpg",   "image/jpeg");
+   hashmap_put(c, "jpeg",  "image/jpeg");
+   hashmap_put(c, "jfif",  "image/jpeg");
+   hashmap_put(c, "pjpeg", "image/jpeg");
+   hashmap_put(c, "pjp",   "image/jpeg");
+   hashmap_put(c, "png",   "image/png");
+   hashmap_put(c, "svg",   "image/svg+xml");
+   hashmap_put(c, "web",   "image/webp");
 
-  if(hashmap_hasKey(c, name))
-    return hashmap_get(c, name);
-  return default;
-}
+   return function(f, string default){
+     name = file_path(f);
+     pos = strlpos(name, ".");
+     if(pos == -1)
+       return default;
+     name = substr(name, pos+1, 0);
+     if(hashmap_hasKey(c, name))
+       return hashmap_get(c, name);
+     return default;
+   };
+};
 
-function webserver_sendHeader(request, type, str){
+function webserver_sendHeader(WEBSERVER_REQUEST request, string type, string str){
   if(request.hasSentHeader){
     return;
   }
@@ -185,20 +194,19 @@ function webserver_sendHeader(request, type, str){
   request.hasSentHeader = true;
   tcp_writeln(request.connection, hashmap_get(request.type, "version")+" "+type+" "+str);
   global request;
-  function headerfunc(name, value){
+  hashmap_for(request.returnHeader, function(name, value){
     tcp_writeln(request.connection, name+": "+value);
-  }
-  hashmap_for(request.returnHeader, headerfunc);
+  });
   tcp_writeln(request.connection, "");
   tcp_flush(request.connection);
 }
 
-function webserver_startChunk(request, type, str){
+function webserver_startChunk(WEBSERVER_REQUEST request, string type, string str){
   webserver_setHeader(request, "Transfer-Encoding", "chunked");
   webserver_sendHeader(request, type, str);
 }
 
-function webserver_sendString(request, str){
+function webserver_sendString(WEBSERVER_REQUEST request, string str){
   if(!hashmap_hasKey(request.returnHeader, "Transfer-Encoding") || hashmap_get(request.returnHeader, "Transfer-Encoding") != "chunked"){
     return "";
   }
@@ -207,7 +215,7 @@ function webserver_sendString(request, str){
   tcp_flush(request.connection);
 }
 
-function webserver_close(request){
+function webserver_close(WEBSERVER_REQUEST request){
   if(hashmap_hasKey(request.returnHeader, "Transfer-Encoding") && hashmap_get(request.returnHeader, "Transfer-Encoding") == "chunked"){
     tcp_writeln(request.connection, "0");
     tcp_writeln(request.connection, "");
@@ -216,33 +224,28 @@ function webserver_close(request){
   tcp_close(request.connection);
 }
 
-function webserver_sendBody(request, body){
+function webserver_sendBody(WEBSERVER_REQUEST request, string body){
   tcp_write(request.connection, body);
   tcp_close(request.connection);
 }
 
-function webserver_path(request){
+function webserver_path(WEBSERVER_REQUEST request){
   return hashmap_get(request.type, "path");
 }
 
-function webserver_ip(request){
+function webserver_ip(WEBSERVER_REQUEST request){
   return tcp_ip(request.connection);
 }
 
-function webserver_404(request){
+function webserver_404(WEBSERVER_REQUEST request){
   if(typeof request.webserver.on404 == "function" && !request.webserver.on404(request))
     return;
   webserver_sendHeader(request, "404", "not found");
   webserver_sendBody(request, "Sorry the requested page could not be found...");
 }
 
-function webserver_sendFile(request, f){
-  if(f == null){
-    webserver_404(request);
-    return;
-  }
-
-  function webserver_getFileContent(request, f, ct){
+const global webserver_sendFile = {
+  function webserver_getFileContent(WEBSERVER_REQUEST request, f, string ct){
     if(strpos(ct, "image/") == 0){
        webserver_setHeader(request, "Accept-Ranges", "bytes");
        return file_readBytes(f, 0, file_size(f));
@@ -250,51 +253,57 @@ function webserver_sendFile(request, f){
     return file_readLength(f, 0, file_size(f));
   }
 
-  //okay let make some importen header...
-  contenttype = webserver_getContentType(f, "text/plain");
-  webserver_setHeader(request, "Content-Length", file_size(f));
-  webserver_setHeader(request, "Content-Type", contenttype);
-  context = webserver_getFileContent(request, f, contenttype);
-  webserver_sendHeader(request, "200", "ok");
-  if(typeof context == "string")
-    tcp_write(request.connection, context);
-  else
-    tcp_writeBytes(request.connection, context);
-  tcp_flush(request.connection);
-}
+  return function(WEBSERVER_REQUEST request, f){
+    if(f == null){
+      webserver_404(request);
+      return;
+    }
+    //okay let make some importen header...
+    contenttype = webserver_getContentType(f, "text/plain");
+    webserver_setHeader(request, "Content-Length", file_size(f)+"");
+    webserver_setHeader(request, "Content-Type", contenttype);
+    context = webserver_getFileContent(request, f, contenttype);
+    webserver_sendHeader(request, "200", "ok");
+    if(typeof context == "string")
+      tcp_write(request.connection, context);
+    else
+      tcp_writeBytes(request.connection, context);
+    tcp_flush(request.connection);
+  };
+};
 
-function webserver_hasQuery(request, key){
+function webserver_hasQuery(WEBSERVER_REQUEST request, string key){
   return hashmap_hasKey(hashmap_get(request.type, "query"), key);
 }
 
-function webserver_getQuery(request, key){
+function webserver_getQuery(WEBSERVER_REQUEST request, string key){
   return hashmap_get(hashmap_get(request.type, "query"), key);
 }
 
-function webserver_hasRequestHeader(request, key){
+function webserver_hasRequestHeader(WEBSERVER_REQUEST request, string key){
   return hashmap_hasKey(request.header, key);
 }
 
-function webserver_getRequestHeader(request, key){
+function webserver_getRequestHeader(WEBSERVER_REQUEST request, string key){
   return hashmap_get(request.header, key);
 }
 
-function webserver_hasPost(request, key){
+function webserver_hasPost(WEBSERVER_REQUEST request, string key){
   return hashmap_hasKey(request.post, key);
 }
 
-function webserver_getPost(request, key){
+function webserver_getPost(WEBSERVER_REQUEST request, string key){
   return hashmap_get(request.post, key);
 }
 
-function webserver_hasCookie(request, key){
+function webserver_hasCookie(WEBSERVER_REQUEST request, string key){
   return hashmap_hasKey(request.cookie, key);
 }
 
-function webserver_getCookie(request, key){
+function webserver_getCookie(WEBSERVER_REQUEST request, string key){
   return hashmap_get(request.cookie, key);
 }
 
-function webserver_setCookie(request, key, value, exp){
+function webserver_setCookie(WEBSERVER_REQUEST request, string key, string value, number exp){
   webserver_setHeader(request, "Set-Cookie", key+"="+urlencode(value)+"; Expires="+utcstring(exp));
 }

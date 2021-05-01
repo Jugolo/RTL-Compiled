@@ -15,7 +15,7 @@ function hashmap(){
   return buffer;
 }
 
-function hashmap_put(hm, name, value){
+function hashmap_put(HASHMAP hm, name, value){
   //first get all element to be sure we dont have it in the system...
   for(i=0;i<hm.size;i++){
     if(hm.array[i].key == name){
@@ -32,7 +32,7 @@ function hashmap_put(hm, name, value){
   hm.size++;
 }
 
-function hashmap_get(hm, name){
+function hashmap_get(HASHMAP hm, name){
   for(i=0;i<hm.size;i++){
     if(hm.array[i].key == name){
       return hm.array[i].value;
@@ -42,7 +42,7 @@ function hashmap_get(hm, name){
   return null;
 }
 
-function hashmap_keyFromValue(hm, value){
+function hashmap_keyFromValue(HASHMAP hm, value){
   for(i=0;i<hm.size;i++){
     if(hm.array[i].value == value){
       return hm.array[i].key;
@@ -51,13 +51,13 @@ function hashmap_keyFromValue(hm, value){
   return null;
 }
 
-function hashmap_for(hm, func){
+function hashmap_for(HASHMAP hm, function func){
   for(i=0;i<hm.size;i++){
     func(hm.array[i].key, hm.array[i].value);
   }
 }
 
-function hashmap_hasKey(hm, name){
+function hashmap_hasKey(HASHMAP hm, name){
   for(i=0;i<hm.size;i++){
     if(hm.array[i].key == name)
       return true;

@@ -1,7 +1,7 @@
 if(typeof current_time != "function")
   include "rtl.time";
 if(typeof webserver_hasCookie != "function")
-  include "rtl.io.web.sever";
+  include "rtl.io.web.server";
 if(typeof chr != "function")
   include "rtl.string";
 if(typeof rand != "function")
@@ -16,13 +16,11 @@ struct SESSION{
   item
 }
 
-function session_init(request){
-  if(typeof request != "structValue" || request._struct.name != "WEBSERVER_REQUEST"){
-    return null;
-  }
-
+function session_init(WEBSERVER_REQUEST request){
   session = struct SESSION;
-
+  d = dir("./sessions/");
+  if(!dir_exists(d))
+    dir_create(d);
   if(!webserver_hasCookie(request, "session")){
     ns = "";
     for(i=0;i<20;i++)
@@ -30,9 +28,6 @@ function session_init(request){
     webserver_setCookie(request, "session", ns, current_time().now + 99999999999);
     session.id = ns;
     //let us make a textfile in the cookie folder...
-    d = dir("./sessions/");
-    if(!dir_exists(d))
-      dir_create(d);
     session.item = hashmap();
   }else{
     session.id = webserver_getCookie(request, "session");
@@ -47,19 +42,19 @@ function session_init(request){
   return session;
 }
 
-function session_hasKey(session, name){
+function session_hasKey(SESSION session, string name){
   return hashmap_hasKey(session.item, name); 
 }
 
-function session_getKey(session, name){
+function session_get(SESSION session, string name){
   return hashmap_get(session.item, name);
 }
 
-function session_set(session, name, value){
-  return hashmap_get(session.item, name, value);
+function session_set(SESSION session, string name, value){
+  hashmap_put(session.item, name, value);
 } 
 
-function session_flush(session){
+function session_flush(SESSION session){
   //open the file
   f = file("./sessions/"+session.id+".session", "rw");
   file_write(f, json_encode(session.item));

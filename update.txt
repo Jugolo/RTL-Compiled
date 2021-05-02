@@ -1,0 +1,10 @@
+From V1.0 to V1.1
+Open terminal and write
+sudo rm /bin/rtl
+sudo rm /usr/share/applications/RTL.desktop
+
+and at least go to RTL folder and type
+sudo java -jar install.jar
+
+There are some change in the file there handle the command 'rtl'
+And for let it work you need to do this.

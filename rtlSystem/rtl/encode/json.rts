@@ -4,129 +4,179 @@ if(typeof count != "function")
   include "rtl.array";
 if(typeof toInt != "function")
   include "rtl.typeconveter";
+if(typeof strlen != "function")
+  include "rtl.string";
 
-function json_decode(string r){
-  global l = strlen(r);
-  if(l == 0)
-    return null;
-
-  global i = 0;
-  global r;
-  function isNumber(string n){
-    n = ord(n);
-    return n >= 48 && n <= 57;
+global const json_decode = {
+  struct JSONDECODE{
+    length,
+    str,
+    index
   }
 
-  function eatSpace(){
-     current = strchar(r, i);
-     while(current == " " || current == "\n" || current == "\r" || current == "\t"){
-       i++;
-       current = strchar(r, i);
-     }
-  }
-
-  function getObjElement(HASHMAP h){
-    eatSpace();
-    if(strchar(r, i) == '"'){
-      keyname = "";
-      for(i++;true;i++){
-        current = strchar(r,i);
-        if(current == '"'){
-          break;
-        }
-        keyname = keyname+current;
-      }
-      i++;
-      eatSpace();
-      if(strchar(r, i) != ':')
-        return null;
-
-      i++;
-      eatSpace();
-      item = getElement();
-      eatSpace();
-      hashmap_put(h, keyname, item);
+  function string json_gc(JSONDECODE jd){
+    while(true){
+      c = strchar(jd.str, jd.index);
+      if(!(c == " " || c == "\n" || c == "\r" || c == "\t"))
+        return c;
+      jd.index++;
     }
+    return null;
   }
 
-  function getArrayElement(array array){
-    eatSpace();
-    array[] = getElement();
-    eatSpace();
+  function HASHMAP json_object(JSONDECODE jd){
+    c = json_gc(jd);
+    if(c == "}")
+      return hashmap();
+    obj = hashmap();
+    while(true){
+       if(!json_memberObject(jd, c, obj))
+         return null;
+       c = json_gc(jd);
+       if(c != ",")
+         break;
+       jd.index++;
+       c = json_gc(jd);
+    }
+
+    if(strchar(jd.str, jd.index) != "}"){
+      return null;
+    }
+    jd.index++;
+    return obj;
   }
-  
-  function getElement(){
-    current = strchar(r, i);
-    i++;
-    if(current == "{"){
-      eatSpace();
-      obj = hashmap();
-      if(strchar(r, i) != "}"){
-        getObjElement(obj);
-        current = strchar(r, i);
-        while(current == ","){
-           i++;
-           getObjElement(obj);
-           current = strchar(r, i);
-        }
-        if(strchar(r, i) != "}"){
+
+  function bool json_memberObject(JSONDECODE jd, string c, HASHMAP hs){
+    if(c != '"')
+      return false;
+    jd.index++;
+    k = json_string(jd);
+    if(json_gc(jd) != ':')
+      return false;
+    jd.index++;
+    hashmap_put(hs, k, json_element(jd));
+    return true;
+  }
+
+  function string json_string(JSONDECODE jd){
+    str = "";
+    while(true){
+      c = strchar(jd.str, jd.index);
+      jd.index++;
+      if(c == '"'){
+        return str;
+      }
+      if(c == '\n')
+        return null;
+      if(c == "\\"){
+        prefix = strchar(jd.str, jd.index);
+        if(prefix == "n"){
+          str += "\n";
+          jd.index++;
+        }elseif(prefix == "r"){
+          str += "\r";
+          jd.index++;
+        }elseif(prefix == "t"){
+          str += "\t";
+          jd.index++;
+        }elseif(prefix == "\\"){
+          str += "\\";
+          jd.index++;
+        }elseif(prefix == '"'){
+          str += '"';
+          jd.index++;
+        }else{
           return null;
         }
-        i++;
-      }
-      return obj;
+      }else
+        str += c;
+    }
+  }
+
+  function array json_array(JSONDECODE jd){
+    if(json_gc(jd) == "]"){
+      jd.index++;
+      return [];
     }
 
-    if(current == "["){
-      eatSpace();
-      array = [];
-      if(strchar(r, i) != "]"){
-        getArrayElement(array);
-        while(strchar(r, i) == ","){
-          i++;
-          getArrayElement(array);
-        }
-      } 
+    array = [];
+    while(true){
+      array[] = json_element(jd);
+      if(json_gc(jd) != ",")
+        break;
+      jd.index++;
+    }
 
-      if(strchar(r, i) != "]"){
+    if(strchar(jd.str, jd.index) != "]"){
+      return null;
+    }
+    jd.index++;
+    return array;
+  }
+
+  function number json_number(JSONDECODE jd){
+    jd.index--;
+    num = "";
+    while(true){
+      c = ord(strchar(jd.str, jd.index));
+      if(c < 48 || c > 57)
+        break;
+      num += strchar(jd.str, jd.index);
+      jd.index++;
+    }
+    return toInt(num);
+  }
+
+  function json_element(JSONDECODE jd){
+    c = json_gc(jd);
+    jd.index++;
+    if(c == "{")
+      return json_object(jd);
+    if(c == '"')
+      return json_string(jd);
+    if(c == "[")
+      return json_array(jd);
+    if(c == 'n'){
+      if(substr(jd.str, jd.index, 3) == "ull"){
+        jd.index += 3;
         return null;
       }
-      i++;
-      return array;
     }
-
-    if(current == '"'){
-      str = "";
-      for(;true;i++){
-        current = strchar(r, i);
-        if(current == '"'){
-          i++;
-          return str;
-        }
-        str = str+current;
+    if(c == 't'){
+      if(substr(jd.str, jd.index, 3) == "rue"){
+        jd.index += 3;
+        return true;
+      }
+    }
+    if(c == "f"){
+      if(substr(jd.str, jd.index, 4) == "alse"){
+        jd.index += 4;
+        return false;
       }
     }
 
-    if(current == '-' || isNumber(current)){
-      if(current == '-')
-        number = "-";
-      else
-        number = current;
-
-      for(;isNumber(strchar(r, i));i++){
-        number = number+strchar(r,i);
-      }
-      i--;
-      return toInt(number);
-    }
-
-    return null;
+    a = ord(c);
+    if(a >= 48 && a <= 57)
+      return json_number(jd);
+    
+    println c+"("+a+")";
   }
-  return getElement();
-}
+   
+  return function(string str){
+    jd = struct JSONDECODE;
+    jd.length = strlen(str);
+    jd.str = str;
+    jd.index = 0;
 
-function json_encode(data){
-  function join(array array, string clue){
+    if(jd.length == 0)
+      return null;
+
+    return json_element(jd);
+  };
+};
+
+global const json_encode = {
+  function string join(array array, string clue){
     length = count(array);
     if(length == 0)
       return "";
@@ -135,33 +185,64 @@ function json_encode(data){
       r = r+clue+array[i];
     return r;
   }
-  if(typeof data == "array"){
-    r = [];
-    for(i=0;i<count(data);i++){
-      r[] = json_encode(data[i]);
+
+  function string json_string(obj){
+    str = '"';
+    length = strlen(obj);
+    for(i=0;i<length;i++){
+      c = strchar(obj, i);
+      if(c == "\n")
+       str += "\\n";
+      elseif(c == "\r")
+       str += "\\r";
+      elseif(c == "\t")
+       str += "\\t";
+      elseif(c == "\\")
+       str += "\\\\";
+      elseif(c == '"')
+       str += '\\"';
+      else
+       str += c;
     }
-    return "["+join(r, ",")+"]";
+    return str+'"';
   }
 
-  if(typeof data == "structValue"){
-    if(data._struct.name == "HASHMAP"){
-      global r = [];
-      function js(key, value){
-         r[] = '"'+key+"\" : "+json_encode(value);
+  function string json_object(obj){
+    global str = [];
+    hashmap_for(obj, function(k,v){
+      if(typeof k == "string"){
+        str[] = json_string(k)+" : "+json_element(v);
       }
-      hashmap_for(data, js);
-      return "{"+join(r, ",")+"}";
-    }
-    return null;
+    });
+    return "{"+join(str, ",")+"}";
   }
 
-  if(typeof data == "string"){
-    return '"'+data+'"';
+  function string json_array(obj){
+    a = [];
+    length = count(obj);
+    for(i=0;i<length;i++)
+      a[] = json_element(obj[i]);
+    return "["+join(a, ",")+"]";
   }
 
+  function string json_element(obj){
+    type = typeof obj;
+    if(type == "structValue"){
+      if(obj._struct.name == "HASHMAP"){
+        return json_object(obj);
+      }
+      return null;
+    }elseif(type == "array"){
+      return json_array(obj);
+    }elseif(type == "string")
+      return json_string(obj);
+    elseif(type == "number")
+      return obj+"";
+    elseif(type == "null")
+      return "null";
+    else
+      println type;
+  }
 
-  if(typeof data == "number")
-    return data+"";
-
-  return "null";
-}
+  return json_element;
+};

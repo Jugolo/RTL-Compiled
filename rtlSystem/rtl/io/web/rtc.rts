@@ -1,0 +1,191 @@
+if(typeof tcpserver_open != "function")
+	include "rtl.io.tcp.server";
+if(typeof thread != "function")
+	include "rtl.system.thread";
+if(typeof parseHTTPHeader != "function")
+	include "rtl.io.web.http.header";
+if(typeof sha1 != "function")
+	include "rtl.encode.hash.sha1";
+if(typeof base64_encode != "function")
+	include "rtl.encode.base64";
+
+global const WEBRTC_TEXT = 0;
+global const WEBRTC_CLOSE = 1;
+global const WEBRTC_PING = 2;
+global const WEBRTC_PONG = 3;
+
+	
+struct WEBRTC{
+  connection,
+  port,
+  connections,
+  //event fields
+  onmessage,
+  onconnect
+}
+
+struct WEBRTC_CONNECTION{
+  connection,
+  //this field is only for use outsite this file
+  data
+}
+
+struct WEBRTC_MSGDATA{
+  type,
+  message,
+  connector
+}
+
+function WEBRTC webrtc_open(number port){
+  global wb = struct WEBRTC;
+  wb.port = port;
+  wb.connection = tcpserver_open(port);
+  wb.connections = [];
+  thread(function(){
+    while(true){
+      client = tcpserver_accept(wb.connection);
+      if(strpos(tcp_readln(client), "GET") != 0){
+        tcp_close(client);
+	continue;
+      }
+      header = parseHTTPHeader(client);
+      if(header == null){
+	tcp_close(client);
+	continue;
+      }
+      key = hashmap_get(header, "Sec-WebSocket-Key");
+      if(key == null){
+	tcp_close(client);
+	continue;
+      }
+      
+      tcp_write(client, "HTTP/1.1 101 Web Socket Protocol Handshake\r\n");
+      tcp_write(client, "Upgrade: websocket\r\n");
+      tcp_write(client, "Connection: Upgrade\r\n");
+      tcp_write(client, "Sec-WebSocket-Accept: "+base64_encode(sha1(key+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11', true))+"\r\n");
+      tcp_write(client, "\r\n");
+      
+      buf = struct WEBRTC_CONNECTION;
+      buf.connection = client;
+      if(typeof wb.onconnect == "function")
+	wb.onconnect(buf);
+	
+      wb.connections[] = buf;
+      if(count(wb.connections) == 1)
+	startRTCListner();
+    }
+  });
+  
+  function getIncomingType(opcode){
+     if(opcode == 1)
+       return WEBRTC_TEXT;
+     
+     if(opcode == 8)
+       return WEBRTC_CLOSE;
+       
+     if(opcode == 9)
+       return WEBRTC_PING;
+       
+     if(opcode == 10)
+       return WEBRTC_PONG;
+  }
+  
+  function startRTCListner(){
+    thread(function(){
+      while(true){
+        length = count(wb.connections);
+        for(i=0;i<length;i++){
+          current = wb.connections[i];
+	  if(tcp_ready(current.connection)){
+	    c = current.connection;
+	    buf = tcp_readByte(c);
+	    fin = (buf & 128) == 128;
+	    opCode = buf & 15;
+	    buf = tcp_readByte(c);
+	    isMasked = (buf & 128) == 128;
+	    dlength = buf & 127;
+	   
+	   
+	    if(isMasked){
+	      if(dlength == 126){
+	        tcp_readByte(c);
+		tcp_readByte(c);
+	        mask = [tcp_readByte(c), tcp_readByte(c), tcp_readByte(c), tcp_readByte(c)];
+	      }else{
+	        mask = [tcp_readByte(c), tcp_readByte(c), tcp_readByte(c), tcp_readByte(c)];
+	      }
+	      d = struct WEBRTC_MSGDATA;
+	      d.message = "";
+	      index = 0;
+	      while(tcp_ready(c)){
+	        d.message += chr(tcp_readByte(c) ^ mask[index % 4]);
+		index++;
+	      }
+	      d.type = getIncomingType(opCode);
+	      if(d.type == null)
+	        continue;
+		
+	      d.connector = current;
+	      if(typeof wb.onmessage == "function")
+	        wb.onmessage(d, wb);
+	    }else{
+	    }
+	  }
+        }
+      }
+    });
+  }
+  return wb;
+}
+
+function webrtc_encode(string message, bool mask){
+  data = [129];
+  length = strlen(message);
+  
+  if(length > 65535){
+    data[] = mask ? 255 : 127;
+    data[] = (length >> 24) & 0xff;
+    data[] = (length >> 16) & 0xff;
+    data[] = (length >> 8) & 0xff;
+    data[] = (length >> 0) & 0xff;
+  }elseif(length > 125){
+    data[] = mask ? 254 : 126;
+    data[] = length & 0xFF;
+    data[] = (length >> 8) & 0xFF;
+  }else
+    data[] = mask ? length + 128 : length;
+  
+  if(mask)
+    masks = [rand(0, 255),rand(0, 255),rand(0, 255),rand(0, 255)];
+  
+  for(i=0;i<length;i++){
+    data[] = mask ? toByte(ord(strchar(message, i)) ^ masks[i % 4]) : toByte(ord(strchar(message, i)));
+  }
+  
+  return data;
+}
+
+function webrtc_ip(WEBRTC_CONNECTION con){
+  return tcp_ip(con.connection);
+}
+
+function webrtc_onMessage(WEBRTC wtc, function callback){
+  wtc.onmessage = callback;
+}
+
+function webrtc_onConnect(WEBRTC wtc, function callback){
+  wtc.onconnect = callback;
+}
+
+function webrtc_send(WEBRTC_CONNECTION con, string message, bool mask = false){
+  tcp_writeBytes(con.connection, webrtc_encode(message, mask));
+  tcp_flush(con.connection);
+}
+
+function webrtc_broadcast(WEBRTC wtc, string msg, function callback = null){
+  c = wtc.connections;
+  for(i=0;i<count(c);i++){
+    if(callback == null || callback(c[i]))
+      webrtc_send(c[i], msg);
+  }
+}

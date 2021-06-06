@@ -1,3 +1,31 @@
+V1.2
+[new]
+  Comment block: Now you can comment diffrence line use /* comment */
+  dir_next: Get next item in the dir.
+  rtl.encode.json: Redesigned to work better.
+  session_gc: New item in the rtl.io.web.session where it will look in the session store and delete old item.
+  session_init: From now on the call to session_init will look up if there are any need to make a clean up in the session store.
+  rtl.test.print: new functions to allow you to print the context of a identify out in the console
+  StructInfo.keys: Get a array containe the structValues keys.
+  StructInfo.values: get a array containe the structValues values
+  include: Include now accept file stream as path.
+  webserver_onConnect: If there was no header sent to the server when finnish calling the callback. it will call webserver_404()
+  sha1: Now are there two arguments. str str, bool byte=false. When byte is true it will return a byte string
+  hex: From now you can write hex instance of number. It is like JS where you need to append the prefix 0x. 
+  toByte: in rtl.typeconveter will there be a function toByte there will convert int value to byte
+  string: in rtl.typeconveter will there be a function there take a value and try to convert it to string
+  byte: New type byte. It will be conveted to string and number.
+  %: Append support for the % sign
+  struct: Now you can append a 'const' before a field. It tell you want to set the field but never change it. 
+  script: New libery added rtl.script where you can create a new script instance and hadnle in the script.
+[bugfix]
+  Before the script hang if you use // at end of the file. Now it will just stop
+  substr: Before you need to set a absolute end length. Now it changes to be length from start pos.
+  include: When use identify as value in include example: 'include path' it not get the value from path
+  ?: When you use ? in the script it will try to make the one expresion to one.
+  -/+: When use the prefix + or - it will result in java error and not handled properly of the lexer
+  mysql: When mysql connection has been open for long time it will stop the script and tell the max time is reach.
+
 V1.1
 [new]
   block: It allow you to containe access to code in a block. It simple just put you code bewten {}.

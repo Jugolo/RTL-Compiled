@@ -57,7 +57,7 @@ function hashmap_for(HASHMAP hm, function func){
   }
 }
 
-function hashmap_hasKey(HASHMAP hm, name){
+function bool hashmap_hasKey(HASHMAP hm, name){
   for(i=0;i<hm.size;i++){
     if(hm.array[i].key == name)
       return true;

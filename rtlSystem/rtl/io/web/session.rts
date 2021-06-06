@@ -16,7 +16,27 @@ struct SESSION{
   item
 }
 
-function session_init(WEBSERVER_REQUEST request){
+global const session_gc = {
+  function string getName(f){
+    path = file_path(f);
+    return substr(path, strlpos(path, "/")+1, 0);
+  }
+
+  return function(){
+    item = dir_item(dir("./sessions/"));
+    for(i=0;i<count(item);i++){
+      if(is_file(item[i])){
+        if(getName(item[i]) == "_data.json")
+          continue;
+
+        if(file_modified(item[i])+86400 < current_time().now)
+          file_delete(item[i]);
+      }
+    }
+  };
+};
+
+function SESSION session_init(WEBSERVER_REQUEST request){
   session = struct SESSION;
   d = dir("./sessions/");
   if(!dir_exists(d))
@@ -39,10 +59,23 @@ function session_init(WEBSERVER_REQUEST request){
     }
   }
 
+  if(!file_exists("./sessions/_data.json")){
+    f = file("./sessions/_data.json", "rw");
+    file_write(f, '{"next_gc" : '+(current_time().now+86400)+'}');
+  }else{
+    f = file("./sessions/_data.json", "rw");
+    d = json_decode(file_readLength(f, 0, file_size(f)));
+    if(hashmap_get(d, "next_gc") < current_time().now || true){
+      session_gc();
+      file_setLength(f, 0);
+      file_write(f, '{"next_gc" : '+(current_time().now+86400)+'}');
+    }
+  }
+ 
   return session;
 }
 
-function session_hasKey(SESSION session, string name){
+function bool session_hasKey(SESSION session, string name){
   return hashmap_hasKey(session.item, name); 
 }
 

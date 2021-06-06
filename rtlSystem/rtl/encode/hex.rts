@@ -27,7 +27,7 @@ hashmap_put(hextabledigit, 69, 14);
 hashmap_put(hextabledigit, 70, 15);
 
 
-function hex2int(string str){
+function number hex2int(string str){
   opcode = strlen(str)-1;
   result = 0;
   for(i=0;i<strlen(str);i++){
@@ -36,7 +36,7 @@ function hex2int(string str){
   return result;
 }
 
-function int2hex(number num){
+function string int2hex(number num){
   result = "";
   while(num > 0){
      c = num / 16;

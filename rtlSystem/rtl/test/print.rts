@@ -1,0 +1,45 @@
+if(typeof hashmap != "function")
+  include "rtl.hashmap";
+if(typeof count != "function")
+  include "rtl.array";
+
+global const test_print = {
+  function string make_space(number time){
+    r = "";
+    for(i=0;i<time;i++)
+      r += " ";
+    return r;
+  }
+
+  function render(obj, number space, bool nl){
+    global space;
+    type = typeof obj;
+    if(type == "null"){
+      print make_space(space)+"null"+(nl ? "\r\n" : "");
+    }elseif(type == "array"){
+      print make_space(space)+"array["+(nl ? "\r\n" : "");
+      for(i=0;i<count(obj);i++)
+        render(obj[i], space+2, nl);
+      print make_space(space)+"]"+(nl ? "\r\n" : "");
+    }elseif(type == "structValue"){
+      if(obj._struct.name == "HASHMAP"){
+        print make_space(space)+"hashmap{"+(nl ? "\r\n" : "");
+        hashmap_for(obj, function(k,v){
+          render(k, space+2, false);
+          print " : ";
+          render(v, 0, true);
+        });
+        print make_space(space)+"}"+(nl ? "\r\n" : "");
+      }else{
+        print make_space(space)+"struct "+obj._struct.name+(nl ? "\r\n" : "");
+      }
+    }elseif(type == "string"){
+      print make_space(space)+"string(\""+obj+"\")"+(nl ? "\r\n" : "");
+    }else
+      println "->"+type;
+  }
+
+  return function(obj){
+    render(obj, 0, true);
+  };
+};

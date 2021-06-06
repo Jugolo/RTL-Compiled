@@ -25,7 +25,7 @@ global const sha1 = {
     e
   }
 
-  function hex(SHA1 data){
+  function string hex(SHA1 data){
     return HEX[(data.a >> 28) & 15] + HEX[(data.a >> 24) & 15] +
            HEX[(data.a >> 20) & 15] + HEX[(data.a >> 16) & 15] +
            HEX[(data.a >> 12) & 15] + HEX[(data.a >> 8) & 15] +
@@ -46,6 +46,14 @@ global const sha1 = {
            HEX[(data.e >> 20) & 15] + HEX[(data.e >> 16) & 15] +
            HEX[(data.e >> 12) & 15] + HEX[(data.e >> 8) & 15] +
            HEX[(data.e >> 4) & 15]  + HEX[data.e & 15];
+  }
+  
+  function toBytes(SHA1 data){
+    return [(data.a >> 24) & 0xFF, (data.a >> 16) & 0xFF, (data.a >> 8) & 0xFF, (data.a >> 0) & 0xFF,
+            (data.b >> 24) & 0xFF, (data.b >> 16) & 0xFF, (data.b >> 8) & 0xFF, (data.b >> 0) & 0xFF,
+            (data.c >> 24) & 0xFF, (data.c >> 16) & 0xFF, (data.c >> 8) & 0xFF, (data.c >> 0) & 0xFF,
+            (data.d >> 24) & 0xFF, (data.d >> 16) & 0xFF, (data.d >> 8) & 0xFF, (data.d >> 0) & 0xFF,
+            (data.e >> 24) & 0xFF, (data.e >> 16) & 0xFF, (data.e >> 8) & 0xFF, (data.e >> 0) & 0xFF];
   }
 
   function hash(SHA1 data){
@@ -178,12 +186,18 @@ global const sha1 = {
     data.blocks[16] = data.block;
     data.blocks[data.lastIndex >> 2] = data.blocks[data.lastIndex >> 2] | EXTRA[data.lastIndex & 3];
     data.block = data.blocks[16];
+    if(data.lastIndex >= 59){
+      if(!data.isHashed){
+        hash(data);
+        data.blocks = [data.block, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      }
+    }
     data.blocks[14] = 0 << 3 | data.bytes >>> 29;
     data.blocks[15] = data.bytes << 3;
-    return hash(data);
+    hash(data);
   }
 
-  return function(string message){
+  return function(string message, bool byte = false){
     data = struct SHA1;
     data.blocks = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
     data.lastIndex = 0;
@@ -231,6 +245,8 @@ global const sha1 = {
       }
     }
     finish(data);
+    if(byte)
+      return toBytes(data);
     return hex(data);
   };
 };

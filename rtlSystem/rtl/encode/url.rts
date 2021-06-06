@@ -5,7 +5,7 @@ if(typeof count != "function")
 if(typeof strlen != "function")
   include "rtl.string";
 
-function urldecode(string str){
+function string urldecode(string str){
   r = "";
   len = strlen(str);
   for(k=0;k<len;k++){
@@ -31,7 +31,7 @@ function urldecode(string str){
   return r;
 }
 
-function urlencode(string str){
+function string urlencode(string str){
   r = "";
   sign = [" ", "\n", "\r", "\t", "!", "*", "'", "(", ")", ";", ":", "@", "&", "=", "+", "$", ",", "/", "?", "%", "#", "[", "]"];
   len = strlen(str);

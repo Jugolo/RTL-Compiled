@@ -1,0 +1,16 @@
+if(typeof tcp_readln != "function")
+  include "rtl.io.tcp.client";
+if(typeof hashmap != "function")
+	include "rtl.hashmap";
+
+
+function HASHMAP parseHTTPHeader(t){
+	h = hashmap();
+	while((line = tcp_readln(t)) != ""){
+		pos = strpos(line, ": ");
+		if(pos == -1)
+			return h;
+		hashmap_put(h, substr(line, 0, pos), substr(line, pos+2, 0));
+	}
+	return h;
+}

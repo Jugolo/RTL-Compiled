@@ -44,7 +44,7 @@ function WEBRTC webrtc_open(number port){
   thread(function(){
     while(true){
       client = tcpserver_accept(wb.connection);
-      if(strpos(tcp_readln(client), "GET") != 0){
+       if((line = tcp_readln(client)) == null || strpos(line, "GET") != 0){
         tcp_close(client);
 	continue;
       }

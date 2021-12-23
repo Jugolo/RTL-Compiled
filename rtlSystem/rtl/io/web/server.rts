@@ -40,10 +40,10 @@ struct WEBSERVER_REQUEST{
 }
 
 function WEBSERVER webserver_open(number port){
-  data = struct WEBSERVER;
-  data.isRunning = false;
-  data.connection = tcpserver_open(port);
-  return data;
+  return struct WEBSERVER{
+    isRunning = false,
+    connection = tcpserver_open(port)
+  };
 }
 
 function HASHMAP webserver_parseQuery(string query){
@@ -102,14 +102,15 @@ global const webserver_onConnect = {
       data = str_split(line, " ");
       if(count(data) != 3)
         continue;
-      wr = struct WEBSERVER_REQUEST;
-      wr.webserver = webserver;
-      wr.connection = client;
-      wr.hasSentHeader = false;
-      wr.returnHeader = hashmap();
+      wr = struct WEBSERVER_REQUEST{
+        webserver = webserver,
+        connection = client,
+        hasSentHeader = false,
+        returnHeader = hashmap(),
+        type = hashmap()
+      };
       hashmap_put(wr.returnHeader, "Connection", "close");
       hashmap_put(wr.returnHeader, "Content-Type", "text/plain");
-      wr.type = hashmap();
       hashmap_put(wr.type, "type", data[0]);
       webserver_parsePath(data[1], wr.type);
       hashmap_put(wr.type, "version", data[2]);

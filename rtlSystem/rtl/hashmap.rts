@@ -9,10 +9,10 @@ struct HASHMAP_ITEM{
 }
 
 function hashmap(){
-  buffer = struct HASHMAP;
-  buffer.size = 0;
-  buffer.array = [];
-  return buffer;
+  return struct HASHMAP{
+    size = 0,
+    array = []
+  };
 }
 
 function hashmap_put(HASHMAP hm, name, value){
@@ -25,10 +25,10 @@ function hashmap_put(HASHMAP hm, name, value){
   }
 
   //no name was found. let put a new item in it.
-  item = struct HASHMAP_ITEM;
-  item.key = name;
-  item.value = value;
-  hm.array[] = item;
+  hm.array[] = struct HASHMAP_ITEM{
+    key = name,
+    value = value
+  };
   hm.size++;
 }
 

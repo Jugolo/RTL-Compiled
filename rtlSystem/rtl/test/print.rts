@@ -35,6 +35,8 @@ global const test_print = {
       }
     }elseif(type == "string"){
       print make_space(space)+"string(\""+obj+"\")"+(nl ? "\r\n" : "");
+    }elseif(type == "number"){
+      print make_space(space)+"number(\""+obj+"\")"+(nl ? "\r\n" : "");
     }else
       println "->"+type;
   }

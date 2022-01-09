@@ -10,7 +10,7 @@ function HASHMAP parseHTTPHeader(t){
 		pos = strpos(line, ": ");
 		if(pos == -1)
 			return h;
-		hashmap_put(h, substr(line, 0, pos), substr(line, pos+2, 0));
+  h._struct.set(substr(line, 0, pos), substr(line, pos+2));
 	}
 	return h;
 }

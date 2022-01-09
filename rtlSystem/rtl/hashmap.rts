@@ -1,6 +1,35 @@
 struct HASHMAP{
-  size,
-  array
+  _array,
+  _size = 0,
+  const $construct = function(){
+    this._array = [];
+    this._size = 0;
+  },
+
+  const $get = function(string key){
+    for(i=0;i<this._size;i++){
+      if(this._array[i].key == key){
+        return this._array[i].value;
+      }
+    }
+
+    return null;
+  },
+  const $set = function(string key, value){
+    for(i=0;i<this._size;i++){
+      if(this._array[i].key == key){
+        this._array[i].value = value;
+        return;
+      }
+    }
+
+    //no name was found. let put a new item in it.
+    this._array[] = struct HASHMAP_ITEM{
+      key = key,
+      value = value
+    };
+    this._size++;
+  }
 }
 
 struct HASHMAP_ITEM{
@@ -9,57 +38,37 @@ struct HASHMAP_ITEM{
 }
 
 function hashmap(){
-  return struct HASHMAP{
-    size = 0,
-    array = []
-  };
+  return struct HASHMAP;
 }
 
-function hashmap_put(HASHMAP hm, name, value){
-  //first get all element to be sure we dont have it in the system...
-  for(i=0;i<hm.size;i++){
-    if(hm.array[i].key == name){
-      hm.array[i].value = value;
-      return;
-    }
-  }
-
-  //no name was found. let put a new item in it.
-  hm.array[] = struct HASHMAP_ITEM{
-    key = name,
-    value = value
-  };
-  hm.size++;
+function hashmap_put(HASHMAP hm, string name, value){
+  println "Sorry for this message. But from V2.1 you dont need to call hashmap_put use the built int $set";
+  hm._struct.set(name, value);
 }
 
-function hashmap_get(HASHMAP hm, name){
-  for(i=0;i<hm.size;i++){
-    if(hm.array[i].key == name){
-      return hm.array[i].value;
-    }
-  }
-
-  return null;
+function hashmap_get(HASHMAP hm, string name){
+  println "Sorry for this message. But from V2.1 you dont need to call hashmap_get use the built int $get";
+  return hm._struct.get(name);
 }
 
 function hashmap_keyFromValue(HASHMAP hm, value){
-  for(i=0;i<hm.size;i++){
-    if(hm.array[i].value == value){
-      return hm.array[i].key;
+  for(i=0;i<hm._size;i++){
+    if(hm._array[i].value == value){
+      return hm._array[i].key;
     }
   }
   return null;
 }
 
 function hashmap_for(HASHMAP hm, function func){
-  for(i=0;i<hm.size;i++){
-    func(hm.array[i].key, hm.array[i].value);
+  for(i=0;i<hm._size;i++){
+    func(hm._array[i].key, hm._array[i].value);
   }
 }
 
 function bool hashmap_hasKey(HASHMAP hm, name){
-  for(i=0;i<hm.size;i++){
-    if(hm.array[i].key == name)
+  for(i=0;i<hm._size;i++){
+    if(hm._array[i].key == name)
       return true;
   }
   return false;

@@ -27,8 +27,8 @@ global const json_decode = {
   function HASHMAP json_object(JSONDECODE jd){
     c = json_gc(jd);
     if(c == "}")
-      return hashmap();
-    obj = hashmap();
+      return struct HASHMAP;
+    obj = struct HASHMAP;
     while(true){
        if(!json_memberObject(jd, c, obj))
          return null;
@@ -54,7 +54,7 @@ global const json_decode = {
     if(json_gc(jd) != ':')
       return false;
     jd.index++;
-    hashmap_put(hs, k, json_element(jd));
+    hs._struct.set(k, json_element(jd));
     return true;
   }
 

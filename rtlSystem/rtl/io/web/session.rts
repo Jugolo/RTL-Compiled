@@ -48,14 +48,14 @@ function SESSION session_init(WEBSERVER_REQUEST request){
     webserver_setCookie(request, "session", ns, current_time().now + 99999999999);
     session.id = ns;
     //let us make a textfile in the cookie folder...
-    session.item = hashmap();
+    session.item = struct HASHMAP;
   }else{
     session.id = webserver_getCookie(request, "session");
     if(file_exists("./sessions/"+session.id+".session")){
       f = file("./sessions/"+session.id+".session", "r");
       session.item = json_decode(file_readLength(f, 0, file_size(f)));
     }else{
-      session.item = hashmap();
+      session.item = struct HASHMAP;
     }
   }
 
@@ -80,11 +80,11 @@ function bool session_hasKey(SESSION session, string name){
 }
 
 function session_get(SESSION session, string name){
-  return hashmap_get(session.item, name);
+  return session.item._struct.get(name);
 }
 
 function session_set(SESSION session, string name, value){
-  hashmap_put(session.item, name, value);
+  session.item._struct.set(name, value);
 } 
 
 function session_flush(SESSION session){

@@ -52,7 +52,7 @@ function HASHMAP webserver_parseQuery(string query){
   for(i=0;i<count(buf);i++){
     p = str_split(buf[i], "=");
     if(count(p) == 2)
-      buffer._struct.set(urldecode(p[0]), urldecode(p[1]));
+      buffer[urldecode(p[0])] = urldecode(p[1]);
   }
   return buffer;
 }
@@ -86,7 +86,7 @@ global const webserver_onConnect = {
       parts = str_split(request.header.Cookie, "; ");
       for(i=0;i<count(parts);i++){
         pos = strpos(parts[i], "=");
-        request.cookie._struct.set(substr(parts[i], 0, pos), urldecode(substr(parts[i], pos+1)));
+        request.cookie[substr(parts[i], 0, pos)]] = urldecode(substr(parts[i], pos+1));
       }
     }
   }
@@ -110,7 +110,7 @@ global const webserver_onConnect = {
         type = struct HASHMAP
       };
       wr.returnHeader.Connection = "close";
-      wr.returnHeader._struct.set("Content-Type", "text/plain");
+      wr.returnHeader["Content-Type"] = "text/plain";
       wr.type.type = data[0];
       webserver_parsePath(data[1], wr.type);
       wr.header = parseHTTPHeader(client);
@@ -120,10 +120,10 @@ global const webserver_onConnect = {
       handleCookie(wr);
       wr.post = struct HASHMAP;
       if(hashmap_hasKey(wr.header, "Content-Type")){
-        ct = wr.header._struct.get("Content-Type");
+        ct = wr.header["Content-Type"];
         if(ct == "application/x-www-form-urlencoded"){
            if(hashmap_hasKey(wr.header, "Content-Length")){
-             str = tcp_readLength(client, toInt(wr.header._struct.get("Content-Length")));
+             str = tcp_readLength(client, toInt(wr.header["Content-Length"]));
            }else{
              str = "";
              while((line = tcp_readln(client)) != null)
@@ -133,7 +133,7 @@ global const webserver_onConnect = {
            base = str_split(str, "&");
            for(i=0;i<count(base);i++){
              part = str_split(base[i], "=");
-             wr.post._struct.set(urldecode(part[0]), count(part) == 1 ? null : urldecode(part[1]));
+             wr.post[urldecode(part[0])] = count(part) == 1 ? null : urldecode(part[1]);
            }
         }
       }
@@ -155,7 +155,7 @@ global const webserver_onConnect = {
 };
 
 function webserver_setHeader(WEBSERVER_REQUEST request, string key, string value){
-  request.returnHeader._struct.set(key, value);
+  request.returnHeader[key] = value;
 }
 
 global const webserver_getContentType = {
@@ -182,7 +182,7 @@ global const webserver_getContentType = {
        return default;
      name = substr(name, pos+1, 0);
      if(hashmap_hasKey(c, name))
-       return c._struct.get(name);
+       return c[name];
      return default;
    };
 };
@@ -207,7 +207,7 @@ function webserver_startChunk(WEBSERVER_REQUEST request, string type, string str
 }
 
 function webserver_sendString(WEBSERVER_REQUEST request, string str){
-  if(!hashmap_hasKey(request.returnHeader, "Transfer-Encoding") || request.returnHeader._struct.get("Transfer-Encoding") != "chunked"){
+  if(!hashmap_hasKey(request.returnHeader, "Transfer-Encoding") || request.returnHeader["Transfer-Encoding"] != "chunked"){
     return "";
   }
   tcp_writeln(request.connection, int2hex(strlen(str)));
@@ -216,7 +216,7 @@ function webserver_sendString(WEBSERVER_REQUEST request, string str){
 }
 
 function webserver_close(WEBSERVER_REQUEST request){
-  if(hashmap_hasKey(request.returnHeader, "Transfer-Encoding") && request.returnHeader._struct.get("Transfer-Encoding") == "chunked"){
+  if(hashmap_hasKey(request.returnHeader, "Transfer-Encoding") && request.returnHeader["Transfer-Encoding"] == "chunked"){
     tcp_writeln(request.connection, "0");
     tcp_writeln(request.connection, "");
     tcp_flush(request.connection);
@@ -277,7 +277,7 @@ function bool webserver_hasQuery(WEBSERVER_REQUEST request, string key){
 }
 
 function string webserver_getQuery(WEBSERVER_REQUEST request, string key){
-  return request.type.query._struct.get(key);
+  return request.type.query[key];
 }
 
 function bool webserver_hasRequestHeader(WEBSERVER_REQUEST request, string key){
@@ -285,7 +285,7 @@ function bool webserver_hasRequestHeader(WEBSERVER_REQUEST request, string key){
 }
 
 function string webserver_getRequestHeader(WEBSERVER_REQUEST request, string key){
-  return request.header._struct.get(key);
+  return request.header[key];
 }
 
 function bool webserver_hasPost(WEBSERVER_REQUEST request, string key){
@@ -293,7 +293,7 @@ function bool webserver_hasPost(WEBSERVER_REQUEST request, string key){
 }
 
 function string webserver_getPost(WEBSERVER_REQUEST request, string key){
-  return request.post._struct.get(key);
+  return request.post[key];
 }
 
 function bool webserver_hasCookie(WEBSERVER_REQUEST request, string key){
@@ -301,7 +301,7 @@ function bool webserver_hasCookie(WEBSERVER_REQUEST request, string key){
 }
 
 function string webserver_getCookie(WEBSERVER_REQUEST request, string key){
-  return request.cookie._struct.get(key);
+  return request.cookie[key];
 }
 
 function webserver_setCookie(WEBSERVER_REQUEST request, string key, string value, number exp){

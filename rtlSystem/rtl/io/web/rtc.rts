@@ -53,7 +53,7 @@ function WEBRTC webrtc_open(number port){
 	tcp_close(client);
 	continue;
       }
-      key = hashmap_get(header, "Sec-WebSocket-Key");
+      key = header["Sec-WebSocket-Key"];
       if(key == null){
 	tcp_close(client);
 	continue;

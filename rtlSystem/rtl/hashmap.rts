@@ -29,6 +29,14 @@ struct HASHMAP{
       value = value
     };
     this._size++;
+  },
+
+  const $arrayPut = function(string key, value){
+    this.$set(key, value);
+  },
+
+  const $arrayGet = function(string key){
+    return this.$get(key);
   }
 }
 

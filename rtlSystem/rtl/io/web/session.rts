@@ -65,7 +65,7 @@ function SESSION session_init(WEBSERVER_REQUEST request){
   }else{
     f = file("./sessions/_data.json", "rw");
     d = json_decode(file_readLength(f, 0, file_size(f)));
-    if(hashmap_get(d, "next_gc") < current_time().now || true){
+    if(d.next_gc < current_time().now || true){
       session_gc();
       file_setLength(f, 0);
       file_write(f, '{"next_gc" : '+(current_time().now+86400)+'}');
@@ -80,11 +80,11 @@ function bool session_hasKey(SESSION session, string name){
 }
 
 function session_get(SESSION session, string name){
-  return session.item._struct.get(name);
+  return session.item[name];
 }
 
 function session_set(SESSION session, string name, value){
-  session.item._struct.set(name, value);
+  session.item[name] = value;
 } 
 
 function session_flush(SESSION session){

@@ -54,7 +54,7 @@ global const json_decode = {
     if(json_gc(jd) != ':')
       return false;
     jd.index++;
-    hs._struct.set(k, json_element(jd));
+    hs[k] = json_element(jd);
     return true;
   }
 
